@@ -16,8 +16,8 @@ namespace JSON
 	public:
 		//类内枚举，定义JSON数据类型
 		enum CppJSON_Type { JSON_Initial, JSON_Error, JSON_NULL, JSON_Bool, JSON_Number, JSON_String, JSON_Array, JSON_Object };
-		
-		//构造函数与析构函数，构造函数使用初始化列表,析构函数是纯虚函数
+
+		//构造函数与析构函数，构造函数使用初始化列表,析构函数是虚函数
 		CppJSON(CppJSON_Type ini = JSON_Initial, CppJSON* left = nullptr, CppJSON* right = nullptr,
 			const std::string& key_name = "name") :type(ini), prev(left), next(right), child(nullptr), key("name") {}
 		virtual ~CppJSON() = 0;
@@ -34,6 +34,14 @@ namespace JSON
 		const std::string return_key() const { return key; }
 		CppJSON* return_child() const { return child; }
 		CppJSON_Type return_type()const { return type; }
+
+		//纯虚函数，后续array和object需要覆写
+		virtual CppJSON& operator [] (int pos) const;
+		virtual CppJSON& operator [] (const std::string key_name) const;
+		virtual void push_back(CppJSON* item);
+		virtual void insert(CppJSON* item, int pos);
+		virtual void split(int pos);
+		virtual void split(const std::string& key_name);
 
 	private:
 		CppJSON_Type type;
@@ -119,11 +127,11 @@ namespace JSON
 		~CppJSON_Array() {}
 
 		//重载 [] 运算符，使数组类型可以通过下标直接访问其内部元素
-		CppJSON& operator [] (int pos) const;
+		CppJSON& operator [] (int pos) const override;
 
-		void push_back(CppJSON* item);
-		void insert(CppJSON* item, int pos);
-		void split(int pos);
+		void push_back(CppJSON* item) override;
+		void insert(CppJSON* item, int pos) override;
+		void split(int pos) override;
 	};
 	//值为对象的数据类型
 	class CppJSON_Object :public CppJSON
@@ -133,10 +141,10 @@ namespace JSON
 		~CppJSON_Object() {}
 
 		//重载 [] 运算符使对象类型可以通过key直接访问其内部元素
-		CppJSON& operator [] (const std::string& key_name) const;
+		CppJSON& operator [] (const std::string key_name) const override;
 
-		void push_back(CppJSON* item);
-		void split(const std::string& key_name);
+		void push_back(CppJSON* item) override;
+		void split(const std::string& key_name) override;
 	};
 	/*----------JSON类型----------*/
 
@@ -149,6 +157,7 @@ namespace JSON
 	std::shared_ptr<CppJSON> parser(char* str, parser_mode mode);
 	//压缩json文本（删除空格、空行、注释）
 	std::string minify(std::stringstream& message);
+	std::string minify(std::string& msg);
 	//重载 << 运算符方便输出
 	std::ostream& operator << (std::ostream& os, CppJSON* JSON_Print);
 	/*----------对外接口----------*/

@@ -7,6 +7,14 @@ namespace JSON
 
 	/*----------类成员函数模块----------*/
 	CppJSON::~CppJSON() {}
+	CppJSON& CppJSON::operator [] (int pos) const { error->throw_exception(CppJSON_Error::Invalid_Type); return *error; }
+	CppJSON& CppJSON::operator [] (const std::string key_name) const { error->throw_exception(CppJSON_Error::Invalid_Type); return *error; }
+	void CppJSON::push_back(CppJSON* item) { error->throw_exception(CppJSON_Error::Invalid_Type); }
+	void CppJSON::insert(CppJSON* item, int pos) { error->throw_exception(CppJSON_Error::Invalid_Type); }
+	void CppJSON::split(int pos) { error->throw_exception(CppJSON_Error::Invalid_Type); }
+	void CppJSON::split(const std::string& key_name) { error->throw_exception(CppJSON_Error::Invalid_Type); }
+
+
 	//数组通过下标访问内部元素
 	CppJSON& CppJSON_Array::operator [] (int pos) const
 	{
@@ -22,7 +30,7 @@ namespace JSON
 		return *location;
 	}
 	//对象通过关键字访问内部元素
-	CppJSON& CppJSON_Object::operator [] (const std::string& key_name) const
+	CppJSON& CppJSON_Object::operator [] (const std::string key_name) const
 	{
 		CppJSON* location = this->return_child();
 		while (location != nullptr && key_name != location->return_key())
@@ -172,6 +180,7 @@ namespace JSON
 		error->throw_exception(CppJSON_Error::Invalid_Json_Text); 
 		std::string fail_pos;
 		getline(message, fail_pos);
+		fail_pos += "(...omit...)";
 		//把解析失败的行内容输出，方便用户检查json文本错误
 		std::cout << "Parsing failed: " << fail_pos << std::endl;
 		return error;
@@ -199,6 +208,10 @@ namespace JSON
 	std::string minify(std::stringstream& message) 
 	{
 		std::string msg = message.str(); 
+		return minify(msg);
+	}
+	std::string minify(std::string& msg)
+	{
 		int point_write = 0, point_read = 0;
 		while (msg[point_read] != '\0')
 		{
@@ -218,10 +231,12 @@ namespace JSON
 			}
 		}
 		msg[point_write] = '\0';
-		return std::string(msg, 0, ++point_write);
+		std::string res(msg, 0, ++point_write);
+		std::cout << res << std::endl;
+		return res;
 	}
 	//跳过空白格
-	std::stringstream& skip_whitespace(std::stringstream& message) { while (message.peek() <= 32) message.ignore(); return message; }
+	std::stringstream& skip_whitespace(std::stringstream& message) { while (message.peek() > 0 && message.peek() <= 32) message.ignore(); return message; }
 	//获取一个元素的key值
 	bool get_keyname(std::string& kn, std::stringstream& message)
 	{
@@ -267,6 +282,12 @@ namespace JSON
 			return std::shared_ptr<CppJSON>(error);
 		}
 		CppJSON* res = parse_object(skip_whitespace(json_text));
+		//在json文本后有除终止符外的其他非空白字符
+		if (skip_whitespace(json_text).peek() != -1)
+		{
+			invalid_json_text(json_text);
+			return std::shared_ptr<CppJSON>(error);
+		}
 		if (typeid(*res) == typeid(*error)) 
 			return std::shared_ptr<CppJSON>(error);
 		std::shared_ptr<CppJSON> ptr(res, delete_json);
@@ -465,7 +486,7 @@ namespace JSON
 	std::ostream& print_number(std::ostream& os, CppJSON_Number* pn) { pn->return_numbertype() ? os << pn->return_valuedouble() : os << pn->return_valueint(); return os; }
 	std::ostream& print_array(std::ostream& os, CppJSON_Array* pa)
 	{
-		++print_deep, os << '[';
+		os << '[';
 		CppJSON* pa_child = pa->return_child();
 		while (pa_child != nullptr)
 		{
@@ -474,12 +495,11 @@ namespace JSON
 			if (pa_child != nullptr)
 				os << ", ";
 		}
-		--print_deep, os << ']';
+		os << ']';
 		return os;
 	}
 	std::ostream& print_object(std::ostream& os, CppJSON_Object* po)
 	{
-		for (int i = 1; i <= print_deep; i++) os << '\t';
 		++print_deep, os << '{';
 		CppJSON* po_child = po->return_child();
 		if (po_child != nullptr) os << '\n';
@@ -487,7 +507,7 @@ namespace JSON
 		{
 			for (int i = 1; i <= print_deep; i++)
 				os << '\t';
-			os << '\"' << po_child->return_key() << "\": ";
+			os << '\"' << po_child->return_key() << "\":\t";
 			os << po_child;
 			po_child = po_child->return_next();
 			if (po_child != nullptr)

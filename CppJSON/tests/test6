@@ -1,0 +1,6 @@
+{
+    "keys": [
+    { "name1":"google" , "url1":"www.google.com" }, 
+    { "name2":"baidu" , "url2":"www.baidu.com" }
+    ]
+}
